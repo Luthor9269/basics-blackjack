@@ -3,6 +3,7 @@ var computerCards = [];
 var players = [];
 var gameMode = `PLAYERS`;
 var hitOrPassCounter = 0;
+var wagerCounter = 0;
 //// Hit or stand functionality DONE
 //// implement a wager calculation function
 //// Ace functionality to be implemented in the cards
@@ -47,25 +48,58 @@ var main = function (input) {
     } please press "hit" or "pass" <br> ${showHands(hitOrPassCounter)}`;
     calPlayerSum(players);
     return myOutputValue;
-  } else if (gameMode == `PLAYER${hitOrPassCounter + 1}` && input == `pass`) {
-    gameMode = `PLAYER${hitOrPassCounter + 1}`;
-    hitOrPassCounter++;
-    myOutputValue = `Player${
-      hitOrPassCounter + 1
-    } please press "hit" or "pass" <br> ${showHands(hitOrPassCounter)}`;
-    return myOutputValue;
   }
-  ///// it cant showHands and runs into an error here
-  ///// because the hitorpass counter becomes more than then players.length and showcards has no index at that location
-  //will stop the players turns once all players have hit or pass
-  if (hitOrPassCounter >= players.length) {
+  if (gameMode == `PLAYER${hitOrPassCounter + 1}` && input == `pass`) {
+    // ensures that the hitorpasscounter stops at the player.length index for the cards
+    while (hitOrPassCounter < players.length - 1) {
+      hitOrPassCounter++;
+      gameMode = `PLAYER${hitOrPassCounter + 1}`;
+      ////// cant showcards as the hitorpasscounter is beyond the number of players
+      ///// complications is because this code is changing based on the number of players thats why i cant just remove the showcards form the pass output value
+      /////// i can just hack and remove the showcards form the pass statement but it will not show the final players cards
+      myOutputValue = `Player${
+        hitOrPassCounter + 1
+      } please press "hit" or "pass" <br> ${showHands(hitOrPassCounter)}`;
+      return myOutputValue;
+    }
+  }
+  if (
+    hitOrPassCounter >= players.length - 1 &&
+    gameMode == `PLAYER${hitOrPassCounter + 1}`
+  ) {
     // while computerCards are lesser than 17 it will draw a card
     while (calCompSum(computerCards) < 17) {
       var computerDraw = shuffledDeck.pop();
       computerCards.push(computerDraw);
     }
-    gameMode = `COMPUTERTURN`;
+    gameMode = `CALCULATING`;
     myOutputValue = `All players have played their turn, the computer will now select. Press submit to reveal hands`;
+    return myOutputValue;
+  }
+  if (gameMode == `CALCULATING`) {
+    var computerHand = showCompHands(computerCards);
+    console.log(computerHand);
+    var myOutputValue = `Computer got <br> ${computerHand}`;
+    var counter = 0;
+    while (counter < players.length) {
+      var calculating = ` Player ${counter + 1}  You got ${
+        players[counter].sum
+      } Result: ${calWinningCond(counter)} 
+      `;
+      console.log(calculating);
+      myOutputValue = `${myOutputValue}  <br>  ${calculating} `;
+      counter++;
+    }
+    gameMode = `RESTART`;
+    return `${myOutputValue} <br> Input "restart" to restart the game`;
+  }
+  if (gameMode == `RESTART` && input == `restart`) {
+    gameMode = `PLAYERS`;
+    shuffledDeck = [];
+    computerCards = [];
+    players = [];
+    hitOrPassCounter = 0;
+    myOutputValue = `Please input the number of players to restart`;
   }
   return myOutputValue;
 };
@@ -75,13 +109,24 @@ var showHands = function (hitOrPassCounter) {
   var playerCardsLength = players[hitOrPassCounter].cards.length;
   var playerCards = players[hitOrPassCounter].cards;
   var counter = 0;
-  console.log(counter);
   while (counter < playerCardsLength) {
     myOutputValue = `You got ${playerCards[counter].name} of ${playerCards[counter].suit} <br>  ${myOutputValue}`;
     counter++;
   }
   calPlayerSum(players);
   return myOutputValue + `<br> Your total is: ${players[hitOrPassCounter].sum}`;
+};
+var showCompHands = function (computerCards) {
+  var myOutputValue = ` `;
+  var computerCardsLength = computerCards.length;
+  var counter = 0;
+  while (counter < computerCardsLength) {
+    myOutputValue = `${computerCards[counter].name} of ${computerCards[counter].suit} <br>  ${myOutputValue}`;
+    counter++;
+  }
+  return (
+    myOutputValue + `<br> Computers total is: ${calCompSum(computerCards)}`
+  );
 };
 //making player objects in global variable to store player information
 /////// it works fine when i give it a number but it just doesnt PUSH the card to the array on top
@@ -159,51 +204,37 @@ var calPlayerSum = function (players) {
   }
 };
 // calculates the sum for comp
-var calCompSum = function (computerCards) {
+var calCompSum = function (noCompCards) {
   var computerCounter = 0;
   var computerSum = 0;
-  while (computerCounter < computerCards.length) {
+  var totalCards = computerCards.length;
+  while (computerCounter < totalCards) {
     computerSum += computerCards[computerCounter].rank;
     computerCounter++;
   }
   return computerSum;
 };
 
-// winning conditions
-/* 
-Player wins if:
-1. player 21
-2. computer bust
-3. player is closer to 21 then the computer
-Player loses if:
-1. Comp 21
-2. Player bust
-3. Comp closer to 21 then player
-*/
-
-// need to make the winning condition to accept various cards and compare them all to the computers hand
-// see if any burst or any win immediately
-// in that essence need to make a function that just takes the player hand and apply game condiditons into them
-
-var calWinningCond = function () {
-  var myOutputValue = ``;
-  /// need to redo this programme to accept players array
+// computer more than 21 they bust
+// player > 21 they bust
+// player && computer < 21 then can compare them
+var calWinningCond = function (playerIndex) {
+  var myOutputValue = ` `;
+  calPlayerSum(players);
+  var playerTotal = players[playerIndex].sum;
   var computerTotal = calCompSum();
-  //  take the sum of the players and evaluate these winning conditions against the computer
-  // so need to run this the number of times that there are players
-  var counter = 0;
-  while (counter < players.length) {
-    if (playerTotal < 21 && computerTotal > 21) {
-      myOutputValue = `You won `;
-    } else if (playerTotal > 21) {
-      myOutputValue = `You Bust`;
-    } else if (
-      (playerTotal < 21 && computerTotal < 21 && computerTotal > playerTotal) ||
-      computerTotal == 21
-    ) {
-      myOutputValue = `You lost`;
-    }
-    myOutputValue = counter++;
+  console.log(playerTotal);
+  console.log(computerTotal);
+  if (computerTotal > 21) {
+    myOutputValue = `Computer Bust`;
+  } else if (playerTotal > 21) {
+    myOutputValue = `Bust`;
+  } else if (playerTotal == computerTotal) {
+    myOutputValue = `Draw`;
+  } else if (playerTotal < computerTotal) {
+    myOutputValue = `Lost`;
+  } else if (playerTotal > computerTotal) {
+    myOutputValue = `Win`;
   }
   return myOutputValue;
 };
@@ -268,39 +299,3 @@ var shuffleDeck = function () {
   }
   return shuffledDeck;
 };
-
-// // making a function to find hit or miss
-// // only shows cards of the player selected
-// var calHitOrMiss = function (input) {
-//   var myOutputValue = ``;
-//   //if game mode is in player 1 it will
-//   if (gameMode == `PLAYER1` && input == `hit`) {
-//     var hit = shuffledDeck.pop();
-//     players[hitOrPassCounter].cards.push(hit);
-//     /////// why isnt it returning this myoutputvalue??
-//     myOutputValue = `PLAYER1 please press "hit" or "pass"`;
-//     return myOutputValue;
-//   } else if (gameMode == `PLAYER1` && input == `pass`) {
-//     hitOrPassCounter++;
-//     gameMode = `Player${hitOrPassCounter + 1}`;
-//     myOutputValue = `Player${
-//       hitOrPassCounter + 1
-//     } please press "hit" or "pass"`;
-//     return myOutputValue;
-//   }
-//   if (gameMode == `PLAYER${hitOrPassCounter + 1}` && input == `hit`) {
-//     var hit = shuffledDeck.pop();
-//     players[hitOrPassCounter].cards.push(hit);
-//     myOutputValue = `Player${
-//       hitOrPassCounter + 1
-//     } please press "hit" or "pass"`;
-//     return myOutputValue;
-//   } else if (gameMode == `PLAYER${hitOrPassCounter}` && input == `pass`) {
-//     hitOrPassCounter++;
-//     gameMode = `Player${hitOrPassCounter}`;
-//     myOutputValue = `Player${
-//       hitOrPassCounter + 1
-//     } please press "hit" or "pass"`;
-//     return myOutputValue;
-//   }
-// };
